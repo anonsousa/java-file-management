@@ -1,0 +1,15 @@
+spring:
+
+
+  error:
+    include-stacktrace: always
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/files_mgmt
+    username: admin
+    password: pw
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
