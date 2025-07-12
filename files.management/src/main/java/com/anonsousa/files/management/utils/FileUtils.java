@@ -1,7 +1,7 @@
 package com.anonsousa.files.management.utils;
 
-import com.anonsousa.files.management.exceptions.CompressionException;
-import com.anonsousa.files.management.exceptions.DecompressionException;
+import com.anonsousa.files.management.exceptions.compression.CompressionException;
+import com.anonsousa.files.management.exceptions.compression.DecompressionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,7 +31,7 @@ public class FileUtils {
         }
         catch (IOException exception) {
             logger.error("Error on compress data, size: " + data.length, exception);
-            throw new CompressionException("Error on compress file: ", exception);
+            throw new CompressionException(exception);
         }
         finally {
             deflater.end();
@@ -53,7 +53,7 @@ public class FileUtils {
         }
         catch (IOException | DataFormatException exception) {
             logger.error("Error on decompress data, size: " + data.length, exception);
-            throw new DecompressionException("Error on decompress file: ", exception);
+            throw new DecompressionException(exception);
         }
         finally {
             inflater.end();

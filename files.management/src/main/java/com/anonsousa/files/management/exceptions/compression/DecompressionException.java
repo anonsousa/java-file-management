@@ -1,7 +1,7 @@
-package com.anonsousa.files.management.exceptions;
+package com.anonsousa.files.management.exceptions.compression;
 
 public class DecompressionException extends RuntimeException{
-    public DecompressionException(String message, Exception exception) {
+    public DecompressionException(Throwable exception) {
         super("Error on decompress data: ", exception);
     }
 }

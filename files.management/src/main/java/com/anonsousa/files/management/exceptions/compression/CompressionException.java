@@ -1,7 +1,7 @@
-package com.anonsousa.files.management.exceptions;
+package com.anonsousa.files.management.exceptions.compression;
 
 public class CompressionException extends RuntimeException{
-    public CompressionException(String message, Exception exception) {
+    public CompressionException(Throwable exception) {
         super("Error on compress data: ", exception);
     }
 }

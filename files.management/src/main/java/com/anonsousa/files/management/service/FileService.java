@@ -1,16 +1,22 @@
 package com.anonsousa.files.management.service;
 
-import com.anonsousa.files.management.exceptions.FileDuplicateException;
-import com.anonsousa.files.management.exceptions.FileEmptyException;
-import com.anonsousa.files.management.exceptions.FileNotFoundException;
+import com.anonsousa.files.management.exceptions.file.FileDuplicateException;
+import com.anonsousa.files.management.exceptions.file.FileEmptyException;
+import com.anonsousa.files.management.exceptions.file.FileNotAllowedException;
+import com.anonsousa.files.management.exceptions.file.FileNotFoundException;
+import com.anonsousa.files.management.exceptions.file.FileStorageException;
+import com.anonsousa.files.management.exceptions.file.FileUnreadableException;
 import com.anonsousa.files.management.model.FileEntity;
 import com.anonsousa.files.management.model.dtos.FileResponseDto;
 import com.anonsousa.files.management.repository.FileRepository;
+import com.anonsousa.files.management.utils.AllowedFileTypes;
 import com.anonsousa.files.management.utils.FileUtils;
+import org.apache.tika.Tika;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -25,29 +31,31 @@ public class FileService {
     }
 
     public FileResponseDto storeFile(MultipartFile file) {
+        validateFileNotEmpty(file);
 
-        if (file.isEmpty()) {
-            throw new FileEmptyException();
+        String detectedType;
+        byte[] fileBytes;
+
+        try {
+            fileBytes = file.getBytes();
+            detectedType = detectContentType(fileBytes);
+            validateAllowedFileType(detectedType);
+        } catch (IOException e) {
+            throw new FileUnreadableException(e);
         }
 
-        if (fileRepository.existsByFileName(file.getOriginalFilename())) {
-            throw new FileDuplicateException();
-        }
+        String originalFileName = StringUtils.cleanPath(file.getOriginalFilename());
+        validateFileNameNotExists(originalFileName);
 
-        try{
-            FileEntity fileEntity = new FileEntity(
-                    file.getOriginalFilename(),
-                    file.getContentType(),
-                    FileUtils.compressData(file.getBytes()),
-                    file.getSize()
-            );
-            fileEntity = fileRepository.save(fileEntity);
+        FileEntity fileEntity = new FileEntity(
+                originalFileName,
+                detectedType,
+                FileUtils.compressData(fileBytes),
+                file.getSize()
+        );
+        fileEntity = fileRepository.save(fileEntity);
 
-            return new FileResponseDto(fileEntity);
-
-        } catch (IOException exception) {
-            throw new RuntimeException(exception);
-        }
+        return new FileResponseDto(fileEntity);
     }
 
     @Transactional(readOnly = true)
@@ -64,5 +72,30 @@ public class FileService {
     public Page<FileResponseDto> getFiles(Pageable pageable) {
         Page<FileEntity> files = fileRepository.findAll(pageable);
         return files.map(FileResponseDto::new);
+    }
+
+
+
+
+    private void validateFileNotEmpty(MultipartFile file) {
+        if (file.isEmpty()) {
+            throw new FileEmptyException();
+        }
+    }
+
+    private void validateAllowedFileType(String detectedType) {
+        if (!AllowedFileTypes.isAllowed(detectedType)) {
+            throw new FileNotAllowedException();
+        }
+    }
+
+    private void validateFileNameNotExists(String originalFileName) {
+        if (fileRepository.existsByFileName(originalFileName)) {
+            throw new FileDuplicateException();
+        }
+    }
+
+    private String detectContentType(byte[] fileBytes) {
+        return new Tika().detect(fileBytes);
     }
 }
